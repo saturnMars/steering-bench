@@ -1,0 +1,19 @@
+[project]
+name = "steering-bench"
+version = "0.1.0"
+description = "Benchmark for evaluating steering vectors"
+authors = [
+    {name = "Daniel Tan", email = "dtch1997@users.noreply.github.com"},
+]
+dependencies = ["transformers>=4.46.3", "steering-vectors>=0.12.1"]
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
