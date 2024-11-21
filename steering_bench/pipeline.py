@@ -104,7 +104,7 @@ class Pipeline(PipelineInterface):
             
             text_probs: list[TokenProb] = []
 
-            for i, (token, logprob) in enumerate(
+            for _, (token, logprob) in enumerate(
                 zip(
                     target_ids[0].cpu(),
                     gen_logprobs,
