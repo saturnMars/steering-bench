@@ -3,7 +3,7 @@
 import requests
 import os
 
-from steering_bench.utils import raw_dataset_dir
+from steering_bench.utils.path import raw_dataset_dir
 
 def download_github_directory(repo_owner, repo_name, directory_path, branch='main', output_dir=None):
     """
@@ -59,5 +59,5 @@ def download_mwe_xrisk():
     download_github_directory('anthropics', 'evals', 'advanced-ai-risk/lm_generated_evals', output_dir=raw_dataset_dir / 'xrisk')    
 
 if __name__ == '__main__':
-    # download_mwe_persona()
+    download_mwe_persona()
     download_mwe_xrisk()
