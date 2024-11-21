@@ -4,27 +4,7 @@ from typing import Literal, Any, Protocol
 from dataclasses import dataclass, field
 from transformers.generation import GenerationConfig
 
-from steering_bench.core import Model, Tokenizer, Completion, Formatter
-
-@dataclass
-class TokenProb:
-    token_id: int
-    # Note: the logprobs are for this token, not the next token
-    # Recall: logprob(A) - logprob(B) = logit(A) - logit(B)
-    logprob: float
-    text: str | None = None
-
-@dataclass
-class TextProbs:
-    text: str
-    token_probs: list[TokenProb]
-
-    @property
-    def sum_logprobs(self) -> float:
-        return sum([tp.logprob for tp in self.token_probs])
-
-    def __repr__(self) -> str:
-        return f"TextProbs({self.text}:{self.sum_logprobs:.2f})"
+from steering_bench.core import Model, Tokenizer, Completion, Formatter, Pipeline as PipelineInterface, TokenProb, TextProbs
 
 @dataclass
 class PipelineContext:
@@ -38,8 +18,8 @@ class PipelineHook(Protocol):
     def __call__(self, context: PipelineContext) -> AbstractContextManager[None]: ...
 
 @dataclass
-class Pipeline:
-    """Generation pipeline"""
+class Pipeline(PipelineInterface):
+    """ Abstraction for a pipeline that generates completions and calculates logprobs """
 
     model: Model
     tokenizer: Tokenizer
@@ -109,11 +89,9 @@ class Pipeline:
             for hook in self.hooks:
                 stack.enter_context(hook(context))
             outputs = self.model(**inputs, output_hidden_states=False, return_dict=True)
-            logits = outputs.logits
-            logprobs = torch.log_softmax(logits, dim=-1)
+            logprobs = torch.log_softmax(outputs.logits, dim=-1)
 
             # collect the probability of the generated token -- probability at index 0 corresponds to the token at index 1
-            logits = logits[:, :-1, :]
             logprobs = logprobs[:, :-1, :]
 
             # get the logprobs for the target tokens
@@ -123,28 +101,19 @@ class Pipeline:
             gen_logprobs = (
                 torch.gather(logprobs, 2, target_ids[:, :, None]).squeeze(-1)[0].cpu()
             )
-            gen_logits = (
-                torch.gather(logits, 2, target_ids[:, :, None]).squeeze(-1)[0].cpu()
-            )
-
-            # For each logit, calculate the moments and quantiles
-            # logits is of shape (1, seq_len, vocab_size)
-            assert logits.shape[0] == 1
-            logits = logits[0]
+            
             text_probs: list[TokenProb] = []
 
-            for i, (token, logprob, logit) in enumerate(
+            for i, (token, logprob) in enumerate(
                 zip(
                     target_ids[0].cpu(),
                     gen_logprobs,
-                    gen_logits,
                 )
             ):
                 if token not in self.tokenizer.all_special_ids:
                     token_prob = TokenProb(
                         token_id=token.item(),
                         logprob=logprob.item(),
-                        logit=logit.item(),
                     )
                     text_probs.append(token_prob)
             return TextProbs(text=full_prompt, token_probs=text_probs)
