@@ -16,7 +16,7 @@ def _parse_split(split_string: str, length: int) -> slice:
 
 def _get_processed_dataset_paths() -> dict[str, pathlib.Path]:
     datasets: dict[str, pathlib.Path] = {}
-    for path in dataset_dir.glob("*.jsonl"):
+    for path in dataset_dir.glob("**/*.json"):
         datasets[path.stem] = path.absolute()
     return datasets
 
@@ -46,3 +46,6 @@ def build_dataset(spec: DatasetSpec):
     dataset_path = _get_processed_dataset_paths()[spec.name]
     dataset = _load_processed_dataset(dataset_path)
     return _shuffle_and_split(dataset, spec.split, spec.seed)
+
+def list_datasets() -> tuple[str, ...]:
+    return tuple(_get_processed_dataset_paths().keys())
