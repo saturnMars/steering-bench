@@ -7,6 +7,7 @@ from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 from transformers.modeling_utils import PreTrainedModel
 from transformers.generation import GenerationConfig
 
+
 # Base types
 @dataclass
 class Completion:
@@ -21,33 +22,23 @@ class Example:
     meta: dict[str, Any] | None = None
     steering_token_index: int = -1  # Token index to extract and apply steering vectors
 
+
 Dataset = list[Example]
 
 Model = PreTrainedModel
 Tokenizer = PreTrainedTokenizerBase
 
+
+Message = dict[str, str]  # keys: 'role', 'content'
+
+
 class Formatter(abc.ABC):
     """Interface for formatters"""
 
     @abc.abstractmethod
-    def format_as_str(
-        self, completion: Completion
-    ) -> str:
+    def __call__(self, prompt: str) -> list[Message]:
         pass
 
-    @abc.abstractmethod
-    def format_prompt_as_str(
-        self, completion: Completion
-    ) -> str:
-        pass
-
-    @abc.abstractmethod
-    def format_conversation(
-        self,
-        current_message: Completion,
-        history: list[Completion] = [],
-    ) -> Completion:
-        pass
 
 @dataclass
 class TokenProb:
@@ -56,9 +47,11 @@ class TokenProb:
     # Recall: logprob(A) - logprob(B) = logit(A) - logit(B)
     logprob: float
 
+
 @dataclass
 class TextProbs:
-    """ Utility class to store token-wise logprobs """
+    """Utility class to store token-wise logprobs"""
+
     text: str
     token_probs: list[TokenProb]
 
@@ -69,8 +62,9 @@ class TextProbs:
     def __repr__(self) -> str:
         return f"TextProbs({self.text}:{self.sum_logprobs:.2f})"
 
+
 class Pipeline(abc.ABC):
-    """ Abstract interface for a text generation pipeline """
+    """Abstract interface for a text generation pipeline"""
 
     @abc.abstractmethod
     def build_generation_prompt(self, completion: Completion) -> str:
@@ -91,7 +85,5 @@ class Pipeline(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def calculate_output_logprobs(
-        self, completion: Completion
-    ) -> TextProbs:
+    def calculate_output_logprobs(self, completion: Completion) -> TextProbs:
         pass

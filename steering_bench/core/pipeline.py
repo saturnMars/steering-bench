@@ -4,7 +4,16 @@ from typing import Literal, Any, Protocol, Iterator
 from dataclasses import dataclass, field
 from transformers.generation import GenerationConfig
 
-from steering_bench.core.types import Model, Tokenizer, Completion, Formatter, Pipeline as PipelineInterface, TokenProb, TextProbs
+from steering_bench.core.types import (
+    Model,
+    Tokenizer,
+    Completion,
+    Formatter,
+    Pipeline as PipelineInterface,
+    TokenProb,
+    TextProbs,
+)
+
 
 @dataclass
 class PipelineContext:
@@ -14,17 +23,18 @@ class PipelineContext:
     inputs: Any
     pipeline: "Pipeline"
 
+
 class PipelineHook(Protocol):
     def __call__(self, context: PipelineContext) -> AbstractContextManager[None]: ...
 
+
 @dataclass
 class Pipeline(PipelineInterface):
-    """ Abstraction for a pipeline that generates completions and calculates logprobs """
+    """Abstraction for a pipeline that generates completions and calculates logprobs"""
 
     model: Model
     tokenizer: Tokenizer
     formatter: Formatter
-    conversation_history: list[Completion] = field(default_factory=list)
     hooks: list[PipelineHook] = field(default_factory=list)
 
     @contextmanager
@@ -46,15 +56,17 @@ class Pipeline(PipelineInterface):
 
     def build_generation_prompt(self, completion: Completion) -> str:
         """Build the generation prompt from the completion"""
-        return self.formatter.format_prompt_as_str(
-            self.formatter.format_conversation(completion, self.conversation_history)
+        messages = self.formatter(completion.prompt)
+        prompt_str = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
         )
+        return prompt_str  # type: ignore
 
     def build_full_prompt(self, completion: Completion) -> str:
         """Build the full prompt from the completion"""
-        return self.formatter.format_as_str(
-            self.formatter.format_conversation(completion, self.conversation_history)
-        )
+        return self.build_generation_prompt(completion) + " " + completion.response
 
     def generate(
         self,
@@ -87,9 +99,7 @@ class Pipeline(PipelineInterface):
         raise RuntimeError("Should never get here")
 
     @torch.no_grad()
-    def calculate_output_logprobs(
-        self, completion: Completion
-    ) -> TextProbs:
+    def calculate_output_logprobs(self, completion: Completion) -> TextProbs:
         """Calculate the logprobs for each token in the prompt + output"""
         base_prompt = self.build_generation_prompt(completion)
         full_prompt = self.build_full_prompt(completion)
@@ -118,7 +128,7 @@ class Pipeline(PipelineInterface):
             gen_logprobs = (
                 torch.gather(logprobs, 2, target_ids[:, :, None]).squeeze(-1)[0].cpu()
             )
-            
+
             text_probs: list[TokenProb] = []
 
             for _, (token, logprob) in enumerate(

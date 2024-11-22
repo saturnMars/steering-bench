@@ -11,7 +11,7 @@ from steering_bench.build_training_data import build_steering_vector_training_da
 from steering_bench.core.evaluate import evaluate_propensities_on_dataset
 from steering_bench.utils.torch import load_model_with_quantization, EmptyTorchCUDACache
 from steering_bench.dataset import build_dataset, DatasetSpec
-from steering_bench.core.format import Formatter, LlamaChatFormatter
+from steering_bench.core.format import Formatter
 from steering_bench.core.pipeline import Pipeline
 from steering_bench.core.propensity import LogProbDifference
 from steering_bench.core.hook import SteeringHook
@@ -45,20 +45,20 @@ persona_specs = [
 PersonaPrompt = str
 
 
-def make_formatter_factory_for_spec(
+def _make_formatter_factory_for_spec(
     formatter_cls: type[Formatter], persona_spec: PersonaSpec
 ) -> Callable[[PersonaPrompt], Formatter]:
     if persona_spec.prompt_strategy is None:
         return lambda _: formatter_cls()
     elif persona_spec.prompt_strategy == "system":
-        return lambda persona_prompt: formatter_cls(system_prompt=persona_prompt)
+        return lambda persona_prompt: formatter_cls(system_message=persona_prompt)
     elif persona_spec.prompt_strategy == "user":
-        return lambda persona_prompt: formatter_cls(prompt_prefix=persona_prompt)  # type: ignore
+        return lambda persona_prompt: formatter_cls(user_message=persona_prompt)
 
     raise ValueError(f"Invalid prompt strategy: {persona_spec.prompt_strategy}")
 
 
-def make_persona_prompt(dataset_name: str, persona_spec: PersonaSpec) -> PersonaPrompt:
+def _make_persona_prompt(dataset_name: str, persona_spec: PersonaSpec) -> PersonaPrompt:
     if persona_spec.attitude == "positive":
         return PERSONA_PROMPTS[dataset_name][0]
     elif persona_spec.attitude == "negative":
@@ -67,6 +67,15 @@ def make_persona_prompt(dataset_name: str, persona_spec: PersonaSpec) -> Persona
         return ""
     else:
         raise ValueError(f"Invalid attitude: {persona_spec.attitude}")
+
+
+def make_formatter_for_persona(
+    dataset_name: str,
+    persona_spec: PersonaSpec,
+):
+    formatter_factory = _make_formatter_factory_for_spec(Formatter, persona_spec)
+    persona_prompt = _make_persona_prompt(dataset_name, persona_spec)
+    return formatter_factory(persona_prompt)
 
 
 if __name__ == "__main__":
@@ -85,11 +94,7 @@ if __name__ == "__main__":
 
     # Train one steering vector for each persona
     for train_persona_spec in persona_specs:
-        formatter_factory = make_formatter_factory_for_spec(
-            LlamaChatFormatter, train_persona_spec
-        )
-        persona_prompt = make_persona_prompt(dataset_name, train_persona_spec)
-        formatter = formatter_factory(persona_prompt)
+        formatter = make_formatter_for_persona(dataset_name, train_persona_spec)
         pipeline = Pipeline(model=model, tokenizer=tokenizer, formatter=formatter)
 
         sv_save_path = save_dir / f"steering_vector_{train_persona_spec}.pt"
@@ -123,11 +128,7 @@ if __name__ == "__main__":
         for test_persona_spec in persona_specs:
 
             # Load pipeline
-            formatter_factory = make_formatter_factory_for_spec(
-                LlamaChatFormatter, test_persona_spec
-            )
-            persona_prompt = make_persona_prompt(dataset_name, test_persona_spec)
-            formatter = formatter_factory(persona_prompt)
+            formatter = make_formatter_for_persona(dataset_name, test_persona_spec)
             pipeline = Pipeline(model=model, tokenizer=tokenizer, formatter=formatter)
 
             propensity_save_path = (

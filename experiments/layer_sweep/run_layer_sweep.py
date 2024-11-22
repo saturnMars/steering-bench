@@ -10,7 +10,7 @@ from steering_bench.build_training_data import build_steering_vector_training_da
 from steering_bench.core.evaluate import evaluate_propensities_on_dataset
 from steering_bench.utils.torch import load_model_with_quantization, EmptyTorchCUDACache
 from steering_bench.dataset import build_dataset, DatasetSpec
-from steering_bench.core.format import LlamaChatFormatter
+from steering_bench.core.format import Formatter
 from steering_bench.core.pipeline import Pipeline
 from steering_bench.core.propensity import LogProbDifference
 from steering_bench.core.hook import SteeringHook
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     # Load the model and tokenizer
     model_name = "meta-llama/Llama-2-7b-chat-hf"
     model, tokenizer = load_model_with_quantization(model_name, load_in_8bit=True)
-    formatter = LlamaChatFormatter()
+    formatter = Formatter()
     pipeline = Pipeline(model=model, tokenizer=tokenizer, formatter=formatter)
 
     # Train the steering vector, or load a saved one
