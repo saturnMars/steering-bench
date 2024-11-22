@@ -33,9 +33,11 @@ class Formatter(FormatterInterface):
     def __init__(
         self,
         completion_template: str = "{prompt} {response}",
+        system_prompt: str = "You are a helpful, honest and concise assistant.",
         msg_separator: str = "\n",
     ) -> None:
         self.msg_separator = msg_separator
+        self.system_prompt = system_prompt
         self.completion_template = completion_template
 
     @abc.abstractmethod
@@ -107,8 +109,6 @@ class LlamaChatFormatter(Formatter):
     Based on: https://github.com/nrimsky/SycophancySteering/blob/main/utils/tokenize_llama.py#L30
     """
 
-    system_prompt: str
-
     B_INST = "[INST]"
     E_INST = "[/INST]"
     B_SYS = "<<SYS>>\n"
@@ -121,10 +121,11 @@ class LlamaChatFormatter(Formatter):
         prompt_prefix: str | None = None,
         system_prompt: str = "You are a helpful, honest and concise assistant.",
     ) -> None:
-        self.system_prompt = system_prompt
         self.prompt_prefix = prompt_prefix
         super().__init__(
-            completion_template=completion_template, msg_separator=msg_separator
+            completion_template=completion_template,
+            msg_separator=msg_separator,
+            system_prompt=system_prompt,
         )
 
     @override
@@ -150,8 +151,6 @@ class QwenChatFormatter(Formatter):
     Wrap conversation using Qwen chat template.
     """
 
-    system_prompt: str
-
     B_INST = "<|im_start|>"
     E_INST = "<|im_end|>\n"
     B_SYS = "system\n"
@@ -165,10 +164,11 @@ class QwenChatFormatter(Formatter):
         prompt_prefix: str | None = None,
         system_prompt: str = "You are a helpful, honest and concise assistant.",
     ) -> None:
-        self.system_prompt = system_prompt
         self.prompt_prefix = prompt_prefix
         super().__init__(
-            completion_template=completion_template, msg_separator=msg_separator
+            completion_template=completion_template,
+            msg_separator=msg_separator,
+            system_prompt=system_prompt,
         )
 
     @override
@@ -197,8 +197,6 @@ class Llama3ChatFormatter(Formatter):
     Wrap conversation using Llama3 chat template.
     """
 
-    system_prompt: str
-
     E_INST = "<|eot_id|>"
     B_SYS = "<|start_header_id|>system<|end_header_id|>\n\n"
     B_USER = "<|start_header_id|>user<|end_header_id|>\n\n"
@@ -206,15 +204,16 @@ class Llama3ChatFormatter(Formatter):
 
     def __init__(
         self,
-        completion_template: str = "{prompt}\n\n{response}",
+        completion_template: str = "{prompt} {response}",
         msg_separator: str = "\n",
         prompt_prefix: str | None = None,
         system_prompt: str = "You are a helpful, honest and concise assistant.",
     ) -> None:
-        self.system_prompt = system_prompt
         self.prompt_prefix = prompt_prefix
         super().__init__(
-            completion_template=completion_template, msg_separator=msg_separator
+            completion_template=completion_template,
+            msg_separator=msg_separator,
+            system_prompt=system_prompt,
         )
 
     @override
