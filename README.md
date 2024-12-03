@@ -23,7 +23,7 @@ This repository also provides off-the-shelf components that make it easy to run 
 - [SteeringHook](steering_bench/core/hook), an implementation of applying steering vectors using our [steering vectors library](https://github.com/steering-vectors/steering-vectors/)
 
 ## Paper Reproduction
-This codebase has been simplified to improve readability, and was not directly used in generating results for the paper. To reproduce specific plots in our paper, refer to our [original codebase](https://github.com/dtch1997/repepo). 
+This codebase has been simplified to improve readability, and was not directly used in generating results for the paper. If you would like to reproduce specific plots in our paper, refer to our [original codebase](https://github.com/dtch1997/repepo). 
 
 ## Citation
 If you found this useful, consider citing our paper: 
