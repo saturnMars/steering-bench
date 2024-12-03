@@ -39,4 +39,8 @@ If you found this useful, consider citing our paper:
 }
 ```
 ## Acknowledgements
-This work was made possible by FAR AI, the AI Centre at UCL, and the Agency for Science, Technology, and Research. 
+This work was made possible by the generous support of:
+- FAR AI
+- The UCL AI Centre
+- UCL DARK Lab
+- The Agency for Science, Technology, and Research
