@@ -14,7 +14,7 @@ pip install -e .
 ## Experiments
 This repository facilitates running the following experiments: 
 - [Layer sweep](experiments/layer_sweep): Extract and apply steering vectors at many different layer in order to select the 'best' layer (by steerability). 
-- [Steering generalization](experiments/persona_generalization): Run steering on a given task with variations in user and system prompts to evaluate generalization.
+- [Steering generalization](experiments/steering_generalization): Run steering on a given task with variations in user and system prompts to evaluate generalization.
 
 ## Package
 This repository also provides off-the-shelf components that make it easy to run a custom steering experiment. 
