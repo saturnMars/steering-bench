@@ -16,8 +16,14 @@ This repository facilitates running the following experiments:
 - [Layer sweep](experiments/layer_sweep): Extract and apply steering vectors at many different layer in order to select the 'best' layer (by steerability). 
 - [Steering generalization](experiments/persona_generalization): Run steering on a given task with variations in user and system prompts to evaluate generalization.
 
-## Further Details
-This codebase has been simplified to improve readability. For the original codebase, refer to https://github.com/dtch1997/repepo 
+## Package
+This repository also provides off-the-shelf components that make it easy to run a custom steering experiment. 
+- [Pipeline](steering_bench/core/pipeline), a wrapper around a (possibly-steered) model
+- [PipelineHook](steering_bench/core/pipeline), an abstraction for generic steering interventions
+- [SteeringHook](steering_bench/core/hook), an implementation of applying steering vectors using our [steering vectors library](https://github.com/steering-vectors/steering-vectors/)
+
+## Paper Reproduction
+This codebase has been simplified to improve readability, and was not directly used in generating results for the paper. To reproduce specific plots in our paper, refer to our [original codebase](https://github.com/dtch1997/repepo). 
 
 ## Citation
 If you found this useful, consider citing our paper: 
