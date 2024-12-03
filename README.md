@@ -19,6 +19,7 @@ This repository facilitates running the following experiments:
 ## Package
 This repository also provides off-the-shelf components that make it easy to run a custom steering experiment. 
 - [Pipeline](steering_bench/core/pipeline), a wrapper around a (possibly-steered) model
+- [Formatter](steering_bench/core/format.py), an abstraction for prompt-based scaffolding
 - [PipelineHook](steering_bench/core/pipeline), an abstraction for generic steering interventions
 - [SteeringHook](steering_bench/core/hook), an implementation of applying steering vectors using our [steering vectors library](https://github.com/steering-vectors/steering-vectors/)
 
