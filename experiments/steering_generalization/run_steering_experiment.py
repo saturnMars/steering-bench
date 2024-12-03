@@ -13,7 +13,7 @@ from steering_bench.core.pipeline import Pipeline
 from steering_bench.core.propensity import LogProbDifference
 from steering_bench.core.hook import SteeringHook
 
-from experiments.persona_generalization.persona_prompts import (
+from experiments.steering_generalization.persona_prompts import (
     PersonaSpec,
     make_formatter_for_persona,
 )
