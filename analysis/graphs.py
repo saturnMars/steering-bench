@@ -16,8 +16,12 @@ if __name__ == '__main__':
     dataset_name = "anti_LGBTQ_rights" #"corrigible-neutral-HHH"
     result_folder = path.join('outputs', 'persona_generalization', 'Llama_2_7b_chat_hf', dataset_name, 'evaluations')
 
-    # Get all the files
+    # (A) Log-Prob Difference
     for file in listdir(result_folder):
+        
+        if not file.startswith('logprob_diff'):
+            continue
+        version = file.split('.')[0].replace('logprob_diff_', '')
         
         # Load the scores
         df = pd.read_parquet(path.join(result_folder, file))
@@ -44,7 +48,7 @@ if __name__ == '__main__':
 
         # Create the figure
         fig = plt.figure(figsize=(10, 6))
-        version = file.replace('propensities_', '').replace('.parquet', '')
+
         plt.title(f"Propensity Scores across Steering Multipliers \n({version.replace('_', ' ')})", fontsize=14)
         
         sns.boxplot(data=df, palette = colors, width=0.5, zorder = 100)
@@ -76,16 +80,49 @@ if __name__ == '__main__':
         # Save the figure
         graph_folder = path.join(result_folder, '..' ,'graphs')
         makedirs(graph_folder, exist_ok=True)
-        fig.savefig(path.join(graph_folder, 'boxplot_' + version + '.png'))
+        fig.savefig(path.join(graph_folder, 'boxplot_' + version + '.pdf'))
         
         # Visualize steerability slope
         steerability = get_steerability_slope(multipliers, df.to_numpy())
         
-        #print('Steerability slopes:', steerability.mean(), steerability.std())
+    plt.close()
         
-        #exit()
+    # (B) ACCURACY
+    for file in listdir(result_folder):
         
-        #plt.figure()
-        #plt.hist(steerability, bins=30)
-        #plt.show()
-    
+        if not file.startswith('logprob_acc'):
+            continue
+        version = file.split('.')[0].replace('logprob_acc_', '')
+        
+        # Load the scores
+        df = pd.read_parquet(path.join(result_folder, file))
+        
+        # Compute the mean accuracy across examples
+        data = df.mean(axis = 0)
+        
+
+        # Create the figure
+        fig = plt.figure(figsize=(9, 6)) #
+        
+        # Plot accuracy line
+        sns.lineplot(data = data, marker='o', color='black')
+        
+        # Plot the min and max accuracy points
+        min_pos = data.argmin().item()
+        max_pos = data.argmax().item()
+        plt.scatter(x = [data.index[max_pos]], y = [data.iloc[max_pos]], 
+                    color='green', s=100, marker = '^', label=f'Max accuracy at {data.index[max_pos]} ({data.iloc[max_pos]:.0%})', zorder = 100)
+        plt.scatter(x = [data.index[min_pos]], y = [data.iloc[min_pos]], 
+                    color='red', s=100, marker = 'v', label=f'Min accuracy at {data.index[min_pos]} ({data.iloc[min_pos]:.0%})', zorder = 100)
+   
+      
+        # Graphical settings
+        plt.title(f"Accuracy across Steering Multipliers \n({version.replace('_', ' ')})", fontsize=14)
+        plt.xticks(data.index)
+        plt.xlabel('Steering Multiplier')
+        plt.ylabel('Accuracy')
+        plt.legend()
+        plt.ylim(0, 1)
+        fig.tight_layout()
+        fig.savefig(path.join(graph_folder, 'accuracy_' + version + '.pdf'))
+        
