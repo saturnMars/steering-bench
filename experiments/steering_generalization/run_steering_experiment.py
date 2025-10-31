@@ -1,9 +1,12 @@
 """Script to perform out-of-distribution steering"""
 
+from os import path, makedirs
+import pandas as pd
 import torch
 import numpy as np
-import pathlib
+from dotenv import load_dotenv
 
+# LOCAL IMPORTS
 from steering_vectors import train_steering_vector
 from steering_bench.build_training_data import build_steering_vector_training_data
 from steering_bench.core.evaluate import evaluate_propensities_on_dataset
@@ -18,11 +21,6 @@ from experiments.steering_generalization.persona_prompts import (
     make_formatter_for_persona,
 )
 
-curr_dir = pathlib.Path(__file__).parent.absolute()
-save_dir = curr_dir / "persona_generalization_results"
-save_dir.mkdir(exist_ok=True)
-
-
 persona_specs = [
     PersonaSpec(attitude="positive", prompt_strategy="system"),
     # PersonaSpec(attitude="positive", prompt_strategy="user"),
@@ -33,59 +31,78 @@ persona_specs = [
 
 
 if __name__ == "__main__":
+    
+    # Load the environment variables from the .env file
+    load_dotenv()
+    
     # Load the dataset
-    dataset_name = "corrigible-neutral-HHH"
-    train_spec = DatasetSpec(name=dataset_name, split="0%:10%", seed=0)
-    test_spec = DatasetSpec(name=dataset_name, split="99%:100%", seed=0)
+    dataset_name = "anti-LGBTQ-rights" #"corrigible-neutral-HHH"
+    train_spec = DatasetSpec(name=dataset_name, split="0%:50%", seed=0) 
+    test_spec = DatasetSpec(name=dataset_name, split="90%:100%", seed=0)
     train_dataset = build_dataset(train_spec)
     test_dataset = build_dataset(test_spec)
-
+    
     # Load the model and tokenizer
     model_name = "meta-llama/Llama-2-7b-chat-hf"
     model, tokenizer = load_model_with_quantization(model_name, load_in_8bit=True)
+    
+    # Create output directory
+    save_dir = path.join("outputs", 'persona_generalization', model_name.split('/')[-1].replace('-', '_'), dataset_name.replace('-', '_'))
+    makedirs(save_dir, exist_ok=True)
 
     # Train one steering vector for each persona
     for train_persona_spec in persona_specs:
         formatter = make_formatter_for_persona(dataset_name, train_persona_spec)
         pipeline = Pipeline(model=model, tokenizer=tokenizer, formatter=formatter)
-
-        sv_save_path = save_dir / f"steering_vector_{train_persona_spec}.pt"
-        if sv_save_path.exists():
+        
+        # Create directory for steering vectors
+        vector_folder = path.join(save_dir, 'steering_vectors')
+        makedirs(vector_folder, exist_ok=True)
+        sv_save_path = path.join(vector_folder, f"steering_vector_{train_persona_spec}.pt")
+        
+        if path.exists(sv_save_path):
             print("Skipping training steering vector")
         else:
-            print("Training steering vector for persona", train_persona_spec)
             training_data = build_steering_vector_training_data(pipeline, train_dataset)
+            
+            # Train the steering vector --> [num_layers x layer_size] --> e.g., [32 x 4096] --> as dictionary
             steering_vector = train_steering_vector(
                 pipeline.model,
                 pipeline.tokenizer,
-                training_data,
-            )
+                training_data, 
+                show_progress=True, 
+                tqdm_desc = f"Training SV for {str(train_persona_spec)}")
+
+            # Save SV
             torch.save(steering_vector, sv_save_path)
 
         del pipeline
 
+    #print('median layer:', model.config.num_hidden_layers // 2)
+    
     # Evaluate propensity and steerability
     layer = 13
-    multipliers = np.array([-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5])
+    multipliers = np.arange(-5, 5.5, step = 0.5)
     propensity_score = LogProbDifference()
     steerabilities: dict[int, float] = {}
 
     for train_persona_spec in persona_specs:
-        # Load SV
-        steering_vector = torch.load(
-            save_dir / f"steering_vector_{train_persona_spec}.pt"
-        )
-
+        
+        # Load SV for the target persona
+        steering_vector = torch.load(path.join(vector_folder, f"steering_vector_{train_persona_spec}.pt"))
+        
         # Evaluate propensities
         for test_persona_spec in persona_specs:
+            
             # Load pipeline
             formatter = make_formatter_for_persona(dataset_name, test_persona_spec)
             pipeline = Pipeline(model=model, tokenizer=tokenizer, formatter=formatter)
-
-            propensity_save_path = (
-                save_dir / f"propensities_{train_persona_spec}_{test_persona_spec}.npy"
-            )
-            if propensity_save_path.exists():
+            
+            # Create directory for saving propensities
+            eval_folder = path.join(save_dir, 'evaluations')
+            makedirs(eval_folder, exist_ok=True)
+            propensity_save_path = path.join(eval_folder, f"{train_persona_spec}_on_{test_persona_spec}.parquet")
+            if path.exists(propensity_save_path):
                 continue
 
             # Create the steering hook, which applies the steering vector to the model
@@ -107,8 +124,9 @@ if __name__ == "__main__":
                     test_dataset,
                     propensity_fn=propensity_score,
                     multipliers=multipliers,
+                    desc = f"Evaluation: SV {train_persona_spec} on {test_persona_spec}",
                 )
                 assert len(pipeline.hooks) == 0
 
             # Save propensities
-            np.save(propensity_save_path, propensities)
+            propensities = pd.DataFrame(data=propensities, columns=multipliers).to_parquet(propensity_save_path)

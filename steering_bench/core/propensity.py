@@ -34,6 +34,7 @@ class LogProbDifference(PropensityScore):
         # calculate difference in logits
         assert prediction.positive_output_prob is not None
         assert prediction.negative_output_prob is not None
+        
         # Recall: logprob(A) - logprob(B) = logit(A) - logit(B)
         positive_output_logprob = prediction.positive_output_prob.sum_logprobs
         negative_output_logprob = prediction.negative_output_prob.sum_logprobs

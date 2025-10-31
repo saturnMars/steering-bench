@@ -750,7 +750,7 @@ class PersonaSpec:
     def __str__(self):
         if self.prompt_strategy is None:
             return f"{self.attitude}"
-        return f"{self.attitude}_{self.prompt_strategy}"
+        return f"{self.attitude}{self.prompt_strategy.capitalize()}"
 
 
 PersonaPrompt = str

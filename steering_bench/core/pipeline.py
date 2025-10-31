@@ -100,9 +100,13 @@ class Pipeline(PipelineInterface):
 
     @torch.no_grad()
     def calculate_output_logprobs(self, completion: Completion) -> TextProbs:
+        
         """Calculate the logprobs for each token in the prompt + output"""
         base_prompt = self.build_generation_prompt(completion)
         full_prompt = self.build_full_prompt(completion)
+        
+        #print('\nFULL PROMPT:\n', full_prompt)
+        
         inputs: Any = self.tokenizer(full_prompt, return_tensors="pt")
         inputs = inputs.to(self.model.device)
         context = PipelineContext(
@@ -110,11 +114,13 @@ class Pipeline(PipelineInterface):
             base_prompt=base_prompt,
             full_prompt=full_prompt,
             inputs=inputs,
-            pipeline=self,
-        )
+            pipeline=self)
+        
         with ExitStack() as stack:
+            
             for hook in self.hooks:
                 stack.enter_context(hook(context))
+                
             outputs = self.model(**inputs, output_hidden_states=False, return_dict=True)
             logprobs = torch.log_softmax(outputs.logits, dim=-1)
 

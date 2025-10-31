@@ -40,9 +40,11 @@ def evaluate(
     pipeline: Pipeline,
     example: Example,
 ) -> EvalPrediction:
+    
     """Evaluate the pipeline on a dataset."""
     positive_probs = pipeline.calculate_output_logprobs(example.positive)
-    negative_probs = pipeline.calculate_output_logprobs(example.negative)
+    negative_probs = pipeline.calculate_output_logprobs(example.negative)    
+    
     pred = EvalPrediction(
         positive_output_prob=positive_probs,
         negative_output_prob=negative_probs,
