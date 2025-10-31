@@ -51,7 +51,8 @@ class TokenProb:
 class TextProbs:
     """Utility class to store token-wise logprobs"""
 
-    text: str
+    prompt: str
+    generated_text: str
     token_probs: list[TokenProb]
 
     @property
@@ -59,8 +60,7 @@ class TextProbs:
         return sum([tp.logprob for tp in self.token_probs])
 
     def __repr__(self) -> str:
-        return f"TextProbs({self.text}:{self.sum_logprobs:.2f})"
-
+        return f"TextProbs(\nPROMPT: {self.prompt}\nGENERATED TEXT: {self.generated_text})\nTOKEN PROBS: {self.sum_logprobs:.2f}"
 
 class Pipeline(abc.ABC):
     """Abstract interface for a text generation pipeline"""

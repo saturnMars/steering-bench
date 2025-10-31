@@ -1,10 +1,11 @@
 # pyright: reportMissingTypeStubs=false
 
 import abc
+from collections import defaultdict
 import numpy as np
 import tqdm as tqdm
 
-from typing import Sequence
+from typing import List, Sequence, Union
 from jaxtyping import Float
 from dataclasses import dataclass
 
@@ -56,22 +57,39 @@ def evaluate_propensities(
     pipeline: Pipeline,
     hook: SteeringHook,
     example: Example,
-    propensity_fn: PropensityScore,
+    propensity_fn: Union[PropensityScore, List[PropensityScore]],
     multipliers: Float[np.ndarray, " n_multipliers"],
 ) -> Float[np.ndarray, " n_multipliers"]:
     """Evaluate the propensity on a single example."""
-
-    propensities: list[float] = []
-
+    
+    # Store metrics for each multiplier
+    metrics = defaultdict(list)
+    generated_texts = list()
     for multiplier in multipliers:
         hook.direction_multiplier = multiplier
         with pipeline.use_hooks([hook]):
             pred = evaluate(pipeline, example)
-            propensity = propensity_fn(pred)
-            propensities.append(propensity)
+            
+            # Store generated texts
+            generated_texts.append(
+                {'multiplier': multiplier ,'prompt':  pred.positive_output_prob.prompt, 'generated_text': pred.positive_output_prob.generated_text}
+            )
+        
+        # Compute propensity scores    
+        if isinstance(propensity_fn, list):
+            for fn in propensity_fn:
+                metrics[fn.get_metric_name()].append(fn(pred))
+        else:
+            metrics[propensity_fn.get_metric_name()].append(propensity_fn(pred))
+            
+        # Reset hook multiplier
         hook.direction_multiplier = 0.0
-
-    return np.array(propensities)
+        
+    # Convert to numpy array
+    for k in metrics.keys():
+        metrics[k] = np.array(metrics[k])
+    
+    return metrics, generated_texts
 
 
 def evaluate_propensities_on_dataset(
@@ -86,17 +104,19 @@ def evaluate_propensities_on_dataset(
 ) -> Float[np.ndarray, "n_examples n_multipliers"]:
     """Evaluate the propensity of the pipeline with the given hook on a dataset."""
 
-    propensities: list[np.ndarray] = []
 
+    metrics = defaultdict(list)
     for example in tqdm.tqdm(dataset, desc=desc, disable=not show_progress):
-        propensities.append(
-            evaluate_propensities(
-                pipeline,
-                hook,
-                example,
-                propensity_fn,
-                multipliers,
-            )
-        )
+        
+        # Evaluate propensities for this example
+        scores, generated_texts = evaluate_propensities(pipeline, hook, example, propensity_fn, multipliers)
+        
+        # Aggregate scores
+        for metric_name, score_array in scores.items():
+            metrics[metric_name].append(score_array)
+            
+    # Convert to numpy arrays
+    for k in metrics.keys():
+        metrics[k] = np.stack(metrics[k], axis=0)
 
-    return np.stack(propensities, axis=0)
+    return metrics, generated_texts

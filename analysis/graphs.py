@@ -78,9 +78,9 @@ if __name__ == '__main__':
         fig.tight_layout()
         
         # Save the figure
-        graph_folder = path.join(result_folder, '..' ,'graphs')
+        graph_folder = path.join(result_folder, '..' ,'graphs', 'boxplots')
         makedirs(graph_folder, exist_ok=True)
-        fig.savefig(path.join(graph_folder, 'boxplot_' + version + '.pdf'))
+        fig.savefig(path.join(graph_folder, + version + '.pdf'))
         
         # Visualize steerability slope
         steerability = get_steerability_slope(multipliers, df.to_numpy())
@@ -100,7 +100,6 @@ if __name__ == '__main__':
         # Compute the mean accuracy across examples
         data = df.mean(axis = 0)
         
-
         # Create the figure
         fig = plt.figure(figsize=(9, 6)) #
         
@@ -124,5 +123,9 @@ if __name__ == '__main__':
         plt.legend()
         plt.ylim(0, 1)
         fig.tight_layout()
-        fig.savefig(path.join(graph_folder, 'accuracy_' + version + '.pdf'))
+        
+        # Save the figure
+        graph_folder = path.join(result_folder, '..' ,'graphs', 'accuracy')
+        makedirs(graph_folder, exist_ok=True)
+        fig.savefig(path.join(graph_folder, version + '.pdf'))
         

@@ -3,6 +3,7 @@ from contextlib import AbstractContextManager, ExitStack, contextmanager
 from typing import Literal, Any, Protocol, Iterator
 from dataclasses import dataclass, field
 from transformers.generation import GenerationConfig
+from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from steering_bench.core.types import (
     Model,
@@ -105,8 +106,6 @@ class Pipeline(PipelineInterface):
         base_prompt = self.build_generation_prompt(completion)
         full_prompt = self.build_full_prompt(completion)
         
-        #print('\nFULL PROMPT:\n', full_prompt)
-        
         inputs: Any = self.tokenizer(full_prompt, return_tensors="pt")
         inputs = inputs.to(self.model.device)
         context = PipelineContext(
@@ -118,10 +117,14 @@ class Pipeline(PipelineInterface):
         
         with ExitStack() as stack:
             
+            # apply hooks
             for hook in self.hooks:
                 stack.enter_context(hook(context))
-                
-            outputs = self.model(**inputs, output_hidden_states=False, return_dict=True)
+            
+            # forward pass
+            outputs = self.model(**inputs, return_dict=True)
+            
+            # get logprobs
             logprobs = torch.log_softmax(outputs.logits, dim=-1)
 
             # collect the probability of the generated token -- probability at index 0 corresponds to the token at index 1
@@ -130,6 +133,7 @@ class Pipeline(PipelineInterface):
             # get the logprobs for the target tokens
             # first, get the tokens which correspond to completions
             target_ids = inputs.input_ids[:, 1:]
+            
             # next, select the indices corresponding to the target token ids
             gen_logprobs = (
                 torch.gather(logprobs, 2, target_ids[:, :, None]).squeeze(-1)[0].cpu()
@@ -149,5 +153,38 @@ class Pipeline(PipelineInterface):
                         logprob=logprob.item(),
                     )
                     text_probs.append(token_prob)
-            return TextProbs(text=full_prompt, token_probs=text_probs)
+                    
+            # Autoregressive text generation
+            generated_text = self._autoregressive_generation(inputs.input_ids, outputs, max_new_tokens = 30)
+            
+            return TextProbs(prompt = full_prompt, generated_text = generated_text, token_probs=text_probs)
         raise RuntimeError("Should never get here")
+    
+    def _autoregressive_generation(self, input_ids: torch.Tensor, outputs:CausalLMOutputWithPast, max_new_tokens: int = 10) -> Any:
+        """Perform autoregressive generation given input tokens"""
+        
+        # Initial forward pass
+        generated_tokens = input_ids.clone()
+        
+        # Feed inputs to model
+        for _ in range(max_new_tokens):
+            
+            # Get logits for the last token
+            next_token_logits = outputs.logits[:, -1, :]
+
+            # Sample or take argmax
+            next_token = torch.argmax(next_token_logits, dim=-1, keepdim=True)
+
+            # Append to sequence
+            generated_tokens = torch.cat([generated_tokens, next_token], dim=-1)
+
+            # Feed back to model
+            outputs = self.model(input_ids=generated_tokens, return_dict=True)
+            
+        # Decode generated text
+        generated_text = self.tokenizer.decode(generated_tokens.squeeze()[input_ids.shape[1]:], skip_special_tokens=True)
+            
+        # Clean the text
+        generated_text = generated_text.split('\n')[0].split('.')[0].strip()
+            
+        return generated_text

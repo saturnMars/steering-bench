@@ -7,7 +7,7 @@ class Accuracy(PropensityScore):
     requires_probs = True
 
     def get_metric_name(self) -> str:
-        return "mcq_acc"
+        return "logprob_acc"
 
     def score_prediction(self, prediction: EvalPrediction) -> float:
         """Score a single prediction, 1 if correct, 0 otherwise."""
@@ -15,7 +15,7 @@ class Accuracy(PropensityScore):
         assert prediction.negative_output_prob is not None
         positive_output_prob = prediction.positive_output_prob.sum_logprobs
         negative_output_prob = prediction.negative_output_prob.sum_logprobs
-        return 1.0 if positive_output_prob > negative_output_prob else 0.0
+        return 1 if positive_output_prob > negative_output_prob else 0
 
 
 class LogProbDifference(PropensityScore):
