@@ -13,8 +13,10 @@ from steering_bench.metric import get_steerability_slope
 if __name__ == '__main__':
 
     # Load the numpy array
-    dataset_name = "anti_LGBTQ_rights" #"corrigible-neutral-HHH"
-    result_folder = path.join('outputs', 'persona_generalization', 'Llama_2_7b_chat_hf', dataset_name, 'evaluations')
+    datasets = ['anti_LGBTQ_rights', 'agreeableness', 'anti_immigration', 'extraversion', 'interest_in_music', 'risk_seeking']
+    dataset_name = datasets[5]
+    #dataset_name = "anti_LGBTQ_rights" #"corrigible-neutral-HHH"
+    result_folder = path.join('outputs', 'Llama_2_7b_chat_hf', dataset_name, 'evaluations')
 
     # (A) Log-Prob Difference
     for file in listdir(result_folder):
@@ -41,7 +43,8 @@ if __name__ == '__main__':
     
         # Create the color map
         cmap = sns.color_palette("coolwarm", as_cmap=True)
-        norm = TwoSlopeNorm(vmin = means.min(), vcenter = 0 if means.max() > 0 else means.max() - 1e-3, vmax = means.max())
+        vcenter = 0 if means.max() > 0 and means.min() < 0 else means.min() + 1e-3 if means.min() > 0 else means.max() - 1e-3
+        norm = TwoSlopeNorm(vmin = means.min(), vcenter = vcenter, vmax = means.max())
         
         # Get color for each multiplier
         colors = {key: cmap(norm(value)) for key, value in means.items()}
@@ -78,9 +81,9 @@ if __name__ == '__main__':
         fig.tight_layout()
         
         # Save the figure
-        graph_folder = path.join(result_folder, '..' ,'graphs', 'boxplots')
+        graph_folder = path.join(result_folder, '..' , 'graphs', 'boxplots')
         makedirs(graph_folder, exist_ok=True)
-        fig.savefig(path.join(graph_folder, + version + '.pdf'))
+        fig.savefig(path.join(graph_folder, version + '.pdf'))
         
         # Visualize steerability slope
         steerability = get_steerability_slope(multipliers, df.to_numpy())

@@ -104,14 +104,15 @@ def evaluate_propensities_on_dataset(
 ) -> Float[np.ndarray, "n_examples n_multipliers"]:
     """Evaluate the propensity of the pipeline with the given hook on a dataset."""
 
-
     metrics = defaultdict(list)
+    generated_texts = list()
     for example in tqdm.tqdm(dataset, desc=desc, disable=not show_progress):
         
         # Evaluate propensities for this example
-        scores, generated_texts = evaluate_propensities(pipeline, hook, example, propensity_fn, multipliers)
+        scores, texts = evaluate_propensities(pipeline, hook, example, propensity_fn, multipliers)
         
         # Aggregate scores
+        generated_texts.extend(texts)
         for metric_name, score_array in scores.items():
             metrics[metric_name].append(score_array)
             

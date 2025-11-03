@@ -30,15 +30,11 @@ persona_specs = [
 ]
 
 
-if __name__ == "__main__":
+def steering_on_dataset(dataset_name: str):
+    """Run steering experiment for a given dataset name"""
     
-    # Load the environment variables from the .env file
-    load_dotenv()
-    
-    # Load the dataset
-    dataset_name = "anti-LGBTQ-rights" #"corrigible-neutral-HHH"
-    train_spec = DatasetSpec(name=dataset_name, split="0%:50%", seed=0) 
-    test_spec = DatasetSpec(name=dataset_name, split="99%:100%", seed=0)
+    train_spec = DatasetSpec(name=dataset_name, split="0%:70%", seed=0) 
+    test_spec = DatasetSpec(name=dataset_name, split="70%:100%", seed=0)
     train_dataset = build_dataset(train_spec)
     test_dataset = build_dataset(test_spec)
     
@@ -47,7 +43,7 @@ if __name__ == "__main__":
     model, tokenizer = load_model_with_quantization(model_name, load_in_8bit=False, device = 'cuda:0')
     
     # Create output directory
-    save_dir = path.join("outputs", 'persona_generalization', model_name.split('/')[-1].replace('-', '_'), dataset_name.replace('-', '_'))
+    save_dir = path.join("outputs", model_name.split('/')[-1].replace('-', '_'), dataset_name.replace('-', '_'))
     makedirs(save_dir, exist_ok=True)
 
     # Train one steering vector for each persona
@@ -84,7 +80,6 @@ if __name__ == "__main__":
     layer = 13
     multipliers = np.arange(-3, 3.5, step = 0.5)
     propensity_score = [LogProbDifference(), Accuracy()]
-    steerabilities: dict[int, float] = {}
 
     for train_persona_spec in persona_specs:
         
@@ -101,14 +96,6 @@ if __name__ == "__main__":
             # Create directory for saving propensities
             eval_folder = path.join(save_dir, 'evaluations')
             makedirs(eval_folder, exist_ok=True)
-            
-            # Create save path 
-            #propensity_save_path = path.join(eval_folder, f"{train_persona_spec}SV_on_{test_persona_spec}.parquet")
-            #accuracy_save_path = path.join(eval_folder, f"{train_persona_spec}SV_on_{test_persona_spec}.parquet")
-            
-            # Skip if already exists
-            #if path.exists(propensity_save_path) or path.exists(accuracy_save_path):
-            #    continue
 
             # Create the steering hook, which applies the steering vector to the model
             steering_hook = SteeringHook(
@@ -144,6 +131,21 @@ if __name__ == "__main__":
 
             # Save generated texts for analysis
             file_path = path.join(eval_folder, f"generated_texts.xlsx")
-            with pd.ExcelWriter(file_path, mode = 'a' if path.exists(file_path) else 'w') as writer:
-                pd.DataFrame(generated_texts).to_excel(writer, sheet_name = f"{train_persona_spec}2{test_persona_spec}", index = False)
+            with pd.ExcelWriter(file_path, mode = 'a' if path.exists(file_path) else 'w', if_sheet_exists = 'replace') as writer:
+                pd.DataFrame(generated_texts).sort_values(by = 'multiplier').to_excel(
+                    excel_writer = writer, 
+                    sheet_name = f"{train_persona_spec}2{test_persona_spec}", 
+                    index = False)
             
+
+if __name__ == "__main__":
+    
+    # Load the environment variables from the .env file
+    load_dotenv()
+    
+    # Define datasets to run experiments on
+    datasets = ['anti-immigration', 'extraversion', 'risk-seeking', 'anti-LGBTQ-rights']
+    
+    # Run steering experiments for each dataset
+    for dataset_name in datasets:
+        steering_on_dataset(dataset_name)
