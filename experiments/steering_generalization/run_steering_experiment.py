@@ -33,6 +33,8 @@ persona_specs = [
 def steering_on_dataset(dataset_name: str):
     """Run steering experiment for a given dataset name"""
     
+    print(f"\n\n=== Running steering experiment on dataset: {dataset_name} ===\n")
+    
     train_spec = DatasetSpec(name=dataset_name, split="0%:70%", seed=0) 
     test_spec = DatasetSpec(name=dataset_name, split="70%:100%", seed=0)
     train_dataset = build_dataset(train_spec)
@@ -40,7 +42,7 @@ def steering_on_dataset(dataset_name: str):
     
     # Load the model and tokenizer
     model_name = "meta-llama/Llama-2-7b-chat-hf"
-    model, tokenizer = load_model_with_quantization(model_name, load_in_8bit=False, device = 'cuda:0')
+    model, tokenizer = load_model_with_quantization(model_name, load_in_8bit=False, device = 'cuda:1')
     
     # Create output directory
     save_dir = path.join("outputs", model_name.split('/')[-1].replace('-', '_'), dataset_name.replace('-', '_'))
@@ -135,7 +137,7 @@ def steering_on_dataset(dataset_name: str):
                 path = file_path, 
                 mode = 'a' if path.exists(file_path) else 'w', 
                 if_sheet_exists = 'replace' if path.exists(file_path) else None) as writer:
-                    pd.DataFrame(generated_texts).sort_values(by = 'multiplier').to_excel(
+                    pd.DataFrame(generated_texts).to_excel(
                         excel_writer = writer, 
                         sheet_name = f"{train_persona_spec}2{test_persona_spec}", 
                         index = False)
@@ -147,7 +149,7 @@ if __name__ == "__main__":
     load_dotenv()
     
     # Define datasets to run experiments on
-    datasets = ['anti-immigration', 'extraversion', 'risk-seeking', 'anti-LGBTQ-rights']
+    datasets = ['anti-immigration', 'anti-LGBTQ-rights', 'extraversion', 'risk-seeking', 'interest-in-music']
     
     # Run steering experiments for each dataset
     for dataset_name in datasets:
