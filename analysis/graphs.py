@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     # Load the numpy array
     datasets = ['anti_LGBTQ_rights', 'agreeableness', 'anti_immigration', 'extraversion', 'interest_in_music', 'risk_seeking']
-    dataset_name = datasets[5]
+    dataset_name = datasets[2]
     #dataset_name = "anti_LGBTQ_rights" #"corrigible-neutral-HHH"
     result_folder = path.join('outputs', 'Llama_2_7b_chat_hf', dataset_name, 'evaluations')
 

@@ -36,7 +36,8 @@ if __name__ == '__main__':
     verbalized_attribute = dict(zip(("promote", "opposite"), PERSONA_PROMPTS[attribute_name]))
     
     # Load the evaluation model
-    pipe = pipeline("text-generation", model="microsoft/Phi-4", dtype="auto", device_map = 'auto') #':': 0
+    device_id = 1
+    pipe = pipeline("text-generation", model="microsoft/Phi-4", dtype="auto", device_map = 'auto' if device_id not in locals() else {'': device_id}) 
 
     # Process each sheet
     for sheet_name, df in dfs.items():

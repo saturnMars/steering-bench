@@ -131,11 +131,14 @@ def steering_on_dataset(dataset_name: str):
 
             # Save generated texts for analysis
             file_path = path.join(eval_folder, f"generated_texts.xlsx")
-            with pd.ExcelWriter(file_path, mode = 'a' if path.exists(file_path) else 'w', if_sheet_exists = 'replace') as writer:
-                pd.DataFrame(generated_texts).sort_values(by = 'multiplier').to_excel(
-                    excel_writer = writer, 
-                    sheet_name = f"{train_persona_spec}2{test_persona_spec}", 
-                    index = False)
+            with pd.ExcelWriter(
+                path = file_path, 
+                mode = 'a' if path.exists(file_path) else 'w', 
+                if_sheet_exists = 'replace' if path.exists(file_path) else None) as writer:
+                    pd.DataFrame(generated_texts).sort_values(by = 'multiplier').to_excel(
+                        excel_writer = writer, 
+                        sheet_name = f"{train_persona_spec}2{test_persona_spec}", 
+                        index = False)
             
 
 if __name__ == "__main__":
