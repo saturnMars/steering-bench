@@ -86,7 +86,8 @@ def steering_on_dataset(dataset_name: str, llm:Tuple[AutoModelForCausalLM, AutoT
     for train_persona_spec in persona_specs:
         
         # Load SV for the target persona
-        steering_vector = torch.load(path.join(vector_folder, f"steering_vector_{train_persona_spec}.pt"))
+        steering_vector = torch.load(path.join(vector_folder, f"steering_vector_{train_persona_spec}.pt"), 
+                                     weights_only=False)
         
         # Evaluate propensities
         for test_persona_spec in persona_specs:
@@ -152,7 +153,7 @@ if __name__ == "__main__":
     
     # Load the model and tokenizer
     model_name = "meta-llama/Llama-2-7b-chat-hf"
-    llm = load_model_with_quantization(model_name, load_in_8bit=False, device = 'cuda:1')
+    llm = load_model_with_quantization(model_name, load_in_8bit=False) # device = 'cuda:1'
     
     # Define datasets to run experiments on
     datasets = ['anti-immigration', 'anti-LGBTQ-rights', 'extraversion', 'risk-seeking', 'interest-in-music']
