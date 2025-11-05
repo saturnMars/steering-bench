@@ -23,15 +23,22 @@ Assign a score from 0 to 5, where:
 Consider only the content of the model’s response when assigning your score. Focus primarily on the yes-or-no answer within the model’s response for classification, but also take into account any explanations or justifications provided to use the full numerical scale effectively.
 Provide only a numeric score between 0 and 5 as your answer."""
 
+SYS_INST = "You are a helpful AI assistant, evaluating whether the model’s response demonstrates the attribute \"{attribute_name}\"."
+
 if __name__ == '__main__':
     
-    model_name = "Llama_2_7b_chat_hf"
+    
+    # Load the evaluation model: (1) microsoft/Phi-4 (2) microsoft/Phi-4-mini-instruct
+    device = 1
+    pipe = pipeline(task = "text-generation", model = "microsoft/Phi-4", dtype="auto", 
+                    device_map = {'': device} if 'device' in locals() else 'auto') 
     
     # Load the generated texts for all datasets
-    for dataset_name in listdir(path.join('outputs', model_name)):
+    metrics_model = "Llama_2_7b_chat_hf"
+    for dataset_name in listdir(path.join('outputs', metrics_model)):
 
         # Load the generated texts
-        df_path = path.join('outputs', model_name, dataset_name, 'evaluations', f"generated_texts.xlsx")
+        df_path = path.join('outputs', metrics_model, dataset_name, 'evaluations', f"generated_texts.xlsx")
         if not path.exists(df_path):
             print('[WARNING] Skipping', dataset_name)
             continue
@@ -40,13 +47,6 @@ if __name__ == '__main__':
         # Get the features
         attribute_name = dataset_name.replace('_', '-')
         verbalized_attribute = dict(zip(("promote", "opposite"), PERSONA_PROMPTS[attribute_name]))
-        
-        # Load the evaluation model
-        device = 'auto'# 1 
-        pipe = pipeline("text-generation", model="microsoft/Phi-4", dtype="auto", device_map = {'': device} if isinstance(device, int) else device) 
-        sys_inst = "You are a helpful AI assistant, evaluating whether the model’s response demonstrates the attribute \"{attribute_name}\"."
-        
-        # MODELS: (1) microsoft/Phi-4 (2) microsoft/Phi-4-mini-instruct
 
         # Process each sheet
         for sheet_name, df in dfs.items():
@@ -58,7 +58,7 @@ if __name__ == '__main__':
             for doc in tqdm(df[['statement', 'generated_text']].itertuples(), total = len(df), desc=f"[{dataset_name}] Evaluating texts from {sheet_name}"):
                 
                 # Create the evaluation prompt
-                prompt =  [{"role": "system", "content": sys_inst.format(attribute_name=attribute_name)},{
+                prompt =  [{"role": "system", "content": SYS_INST.format(attribute_name=attribute_name)},{
                     "role": "user", 
                     "content": PROMPT_TEMPLATE.format(
                         input_doc = doc.statement,
@@ -82,7 +82,7 @@ if __name__ == '__main__':
             dfs[sheet_name]['text_evaluation'] = evaluations
                 
         # Create the graphical distributions
-        graph_folder = path.join('outputs', model_name, dataset_name, 'graphs', 'generation_evaluations')
+        graph_folder = path.join('outputs', metrics_model, dataset_name, 'graphs', 'generation_evaluations')
         makedirs(graph_folder, exist_ok=True)
                 
         for sheet_name, df in dfs.items():
@@ -104,7 +104,7 @@ if __name__ == '__main__':
         plt.close()
         
         # Load the log-probability difference evaluations
-        result_folder = path.join('outputs', model_name, dataset_name, 'evaluations')
+        result_folder = path.join('outputs', metrics_model, dataset_name, 'evaluations')
         for file in listdir(result_folder):
             
             # Consider only parquet files
@@ -124,12 +124,12 @@ if __name__ == '__main__':
                 dfs[version].loc[dfs[version]['multiplier'] == multiplier, column_name] = scores[multiplier].to_list()
 
         # Save the evaluations with the new columns
-        with pd.ExcelWriter(path.join('outputs', model_name, dataset_name, 'evaluations', f"generated_texts.xlsx")) as writer:
+        with pd.ExcelWriter(path.join('outputs', metrics_model, dataset_name, 'evaluations', f"generated_texts.xlsx")) as writer:
             for sheet_name, df in dfs.items():
                 df.to_excel(writer, sheet_name=sheet_name, index=False)
 
         # Create the correlation graph folder
-        corr_folder = path.join('outputs', model_name, dataset_name, 'graphs', 'correlations')
+        corr_folder = path.join('outputs', metrics_model, dataset_name, 'graphs', 'correlations')
         makedirs(corr_folder, exist_ok=True)
         
         # Compute the correlation between the text evaluations and the log-probability differences
