@@ -80,7 +80,11 @@ if __name__ == '__main__':
                 
             # Add the evaluations to the dataframe
             dfs[sheet_name]['text_evaluation'] = evaluations
-                
+        
+        # -------------------------------------------------------
+        # ------------------- GRAPHS ----------------------------
+        # -------------------------------------------------------
+        
         # Create the graphical distributions
         graph_folder = path.join('outputs', metrics_model, dataset_name, 'graphs', 'generation_evaluations')
         makedirs(graph_folder, exist_ok=True)

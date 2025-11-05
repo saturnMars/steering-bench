@@ -1,10 +1,12 @@
 """Script to perform out-of-distribution steering"""
 
 from os import path, makedirs
+from typing import Tuple
 import pandas as pd
 import torch
 import numpy as np
 from dotenv import load_dotenv
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # LOCAL IMPORTS
 from steering_vectors import train_steering_vector
@@ -22,15 +24,13 @@ from experiments.steering_generalization.persona_prompts import (
 )
 
 persona_specs = [
-    PersonaSpec(attitude="positive", prompt_strategy="system"),
-    # PersonaSpec(attitude="positive", prompt_strategy="user"),
-    PersonaSpec(attitude="negative", prompt_strategy="system"),
-    # PersonaSpec(attitude="negative", prompt_strategy="user"),
+    PersonaSpec(attitude="positive", prompt_strategy="system"), # prompt_strategy="user"
+    PersonaSpec(attitude="negative", prompt_strategy="system"), # prompt_strategy="user"
     PersonaSpec(attitude="baseline", prompt_strategy=None),
 ]
 
 
-def steering_on_dataset(dataset_name: str):
+def steering_on_dataset(dataset_name: str, llm:Tuple[AutoModelForCausalLM, AutoTokenizer]):
     """Run steering experiment for a given dataset name"""
     
     print(f"\n\n=== Running steering experiment on dataset: {dataset_name} ===\n")
@@ -40,18 +40,17 @@ def steering_on_dataset(dataset_name: str):
     train_dataset = build_dataset(train_spec)
     test_dataset = build_dataset(test_spec)
     
-    # Load the model and tokenizer
-    model_name = "meta-llama/Llama-2-7b-chat-hf"
-    model, tokenizer = load_model_with_quantization(model_name, load_in_8bit=False, device = 'cuda:1')
-    
     # Create output directory
     save_dir = path.join("outputs", model_name.split('/')[-1].replace('-', '_'), dataset_name.replace('-', '_'))
     makedirs(save_dir, exist_ok=True)
 
+    # Unpack the model and tokenizer
+    llm_model, llm_tokenizer = llm[0], llm[1]
+
     # Train one steering vector for each persona
     for train_persona_spec in persona_specs:
         formatter = make_formatter_for_persona(dataset_name, train_persona_spec)
-        pipeline = Pipeline(model=model, tokenizer=tokenizer, formatter=formatter)
+        pipeline = Pipeline(model = llm_model, tokenizer = llm_tokenizer, formatter = formatter)
         
         # Create directory for steering vectors
         vector_folder = path.join(save_dir, 'steering_vectors')
@@ -74,6 +73,7 @@ def steering_on_dataset(dataset_name: str):
             # Save SV
             torch.save(steering_vector, sv_save_path)
 
+        # Delete pipeline to reduce memory leakage
         del pipeline
 
     #print('median layer:', model.config.num_hidden_layers // 2)
@@ -93,7 +93,7 @@ def steering_on_dataset(dataset_name: str):
             
             # Load pipeline
             formatter = make_formatter_for_persona(dataset_name, test_persona_spec)
-            pipeline = Pipeline(model=model, tokenizer=tokenizer, formatter=formatter)
+            pipeline = Pipeline(model=llm_model, tokenizer=llm_tokenizer, formatter=formatter)
             
             # Create directory for saving propensities
             eval_folder = path.join(save_dir, 'evaluations')
@@ -141,16 +141,22 @@ def steering_on_dataset(dataset_name: str):
                         excel_writer = writer, 
                         sheet_name = f"{train_persona_spec}2{test_persona_spec}", 
                         index = False)
-            
 
+            # Delete pipeline to reduce memory leakage
+            del pipeline
+            
 if __name__ == "__main__":
     
     # Load the environment variables from the .env file
     load_dotenv()
     
+    # Load the model and tokenizer
+    model_name = "meta-llama/Llama-2-7b-chat-hf"
+    llm = load_model_with_quantization(model_name, load_in_8bit=False, device = 'cuda:1')
+    
     # Define datasets to run experiments on
     datasets = ['anti-immigration', 'anti-LGBTQ-rights', 'extraversion', 'risk-seeking', 'interest-in-music']
     
     # Run steering experiments for each dataset
-    for dataset_name in datasets:
-        steering_on_dataset(dataset_name)
+    for dataset_name in datasets[1:]:
+        steering_on_dataset(dataset_name, llm)
