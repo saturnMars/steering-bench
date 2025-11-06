@@ -11,16 +11,11 @@ import matplotlib.pyplot as plt
 from steering_bench.metric import get_steerability_slope
 
 if __name__ == '__main__':
-
-    # Load the numpy array
-    #datasets = ['anti_LGBTQ_rights', 'agreeableness', 'anti_immigration', 'extraversion', 'interest_in_music', 'risk_seeking']
-    #dataset_name = datasets[2]
-    #dataset_name = "anti_LGBTQ_rights" #"corrigible-neutral-HHH"
     
-    model_name = "Llama_2_7b_chat_hf"
-    for dataset_name in listdir(path.join('outputs', model_name)):
+    metrics_model = "Llama_2_7b_chat_hf"
+    for dataset_name in listdir(path.join('outputs', metrics_model)):
             
-        result_folder = path.join('outputs', model_name, dataset_name, 'evaluations')
+        result_folder = path.join('outputs', metrics_model, dataset_name, 'evaluations')
 
         # (A) Log-Prob Difference
         for file in listdir(result_folder):

@@ -27,10 +27,9 @@ SYS_INST = "You are a helpful AI assistant, evaluating whether the model’s res
 
 if __name__ == '__main__':
     
-    
     # Load the evaluation model: (1) microsoft/Phi-4 (2) microsoft/Phi-4-mini-instruct
     device = 1
-    pipe = pipeline(task = "text-generation", model = "microsoft/Phi-4", dtype="auto", 
+    pipe = pipeline(task = "text-generation", model = "microsoft/Phi-4-mini-instruct", dtype="auto", 
                     device_map = {'': device} if 'device' in locals() else 'auto') 
     
     # Load the generated texts for all datasets
@@ -160,7 +159,7 @@ if __name__ == '__main__':
             
             # Save the figure
             fig.savefig(path.join(corr_folder, f"corr_{sheet_name}.pdf"))
-            plt.close()
+            plt.close(fig)
         
         # Visualize the (normalized) text evaluation vs log-probability difference
         for sheet_name, df in dfs.items():
@@ -189,4 +188,4 @@ if __name__ == '__main__':
             
             # Save the figure
             fig.savefig(path.join(corr_folder, f"score_comparison_{sheet_name}.pdf"))
-        plt.close(fig)
+            plt.close(fig)
