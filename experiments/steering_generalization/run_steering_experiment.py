@@ -159,5 +159,5 @@ if __name__ == "__main__":
     datasets = ['anti-immigration', 'anti-LGBTQ-rights', 'extraversion', 'risk-seeking', 'interest-in-music']
     
     # Run steering experiments for each dataset
-    for dataset_name in datasets[1:]:
+    for dataset_name in datasets[2:]:
         steering_on_dataset(dataset_name, llm)
