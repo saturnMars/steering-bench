@@ -36,7 +36,7 @@ def steering_on_dataset(dataset_name: str, llm:Tuple[AutoModelForCausalLM, AutoT
     print(f"\n\n=== Running steering experiment on dataset: {dataset_name} ===\n")
     
     train_spec = DatasetSpec(name=dataset_name, split="0%:70%", seed=0) 
-    test_spec = DatasetSpec(name=dataset_name, split="70%:100%", seed=0)
+    test_spec = DatasetSpec(name=dataset_name, split="99%:100%", seed=0)
     train_dataset = build_dataset(train_spec)
     test_dataset = build_dataset(test_spec)
     
@@ -133,12 +133,19 @@ def steering_on_dataset(dataset_name: str, llm:Tuple[AutoModelForCausalLM, AutoT
                 pd.DataFrame(data=metrics[metric_name], columns=multipliers).to_parquet(path.join(eval_folder, file_name))
 
             # Save generated texts for analysis
+            generated_texts = pd.DataFrame(generated_texts)
+            
+            # Extract the statement from the prompt
+            doc = generated_texts['full_prompt'].str.split('\n\n').str[1].str.replace('\n', ' ').str.strip()
+            generated_texts.insert(loc = 2, column = 'doc', value = doc)
+            
             file_path = path.join(eval_folder, f"generated_texts.xlsx")
             with pd.ExcelWriter(
                 path = file_path, 
                 mode = 'a' if path.exists(file_path) else 'w', 
+                
                 if_sheet_exists = 'replace' if path.exists(file_path) else None) as writer:
-                    pd.DataFrame(generated_texts).to_excel(
+                    generated_texts.to_excel(
                         excel_writer = writer, 
                         sheet_name = f"{train_persona_spec}2{test_persona_spec}", 
                         index = False)
@@ -153,7 +160,7 @@ if __name__ == "__main__":
     
     # Load the model and tokenizer
     model_name = "meta-llama/Llama-2-7b-chat-hf"
-    llm = load_model_with_quantization(model_name, load_in_8bit=False) # device = 'cuda:1'
+    llm = load_model_with_quantization(model_name, load_in_8bit=False, device = 1) # device = 'cuda:1'
     
     # Define datasets to run experiments on
     datasets = ['anti-immigration', 'anti-LGBTQ-rights', 'extraversion', 'risk-seeking', 'interest-in-music']

@@ -41,9 +41,9 @@ def evaluate(
     pipeline: Pipeline,
     example: Example,
 ) -> EvalPrediction:
-    
+
     """Evaluate the pipeline on a dataset."""
-    positive_probs = pipeline.calculate_output_logprobs(example.positive)
+    positive_probs = pipeline.calculate_output_logprobs(example.positive, autoregressive_process=True)
     negative_probs = pipeline.calculate_output_logprobs(example.negative)    
     
     pred = EvalPrediction(
@@ -70,11 +70,6 @@ def evaluate_propensities(
         with pipeline.use_hooks([hook]):
             pred = evaluate(pipeline, example)
             
-            # Store generated texts
-            generated_texts.append(
-                {'multiplier': multiplier ,'prompt':  pred.positive_output_prob.prompt, 'generated_text': pred.positive_output_prob.generated_text}
-            )
-        
         # Compute propensity scores    
         if isinstance(propensity_fn, list):
             for fn in propensity_fn:
@@ -82,6 +77,15 @@ def evaluate_propensities(
         else:
             metrics[propensity_fn.get_metric_name()].append(propensity_fn(pred))
             
+        # Store generated texts
+        text_stats = {
+            'multiplier': multiplier.item(),
+            'full_prompt':  pred.positive_output_prob.prompt, 
+            'generated_text': pred.positive_output_prob.generated_text,
+            'generated_option': pred.positive_output_prob.generated_option,
+            'generated_option_accuracy': int(pred.positive_output_prob.generated_option == example.positive.response.strip(')('))}
+        generated_texts.append(text_stats| {metric_name: metrics[metric_name][-1] for metric_name in metrics.keys()})
+        
         # Reset hook multiplier
         hook.direction_multiplier = 0.0
         

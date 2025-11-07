@@ -1,6 +1,6 @@
 import abc
 
-from typing import Any
+from typing import Any, Optional
 from dataclasses import dataclass
 from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 from transformers.modeling_utils import PreTrainedModel
@@ -52,15 +52,18 @@ class TextProbs:
     """Utility class to store token-wise logprobs"""
 
     prompt: str
-    generated_text: str
     token_probs: list[TokenProb]
+    generated_text: Optional[str] = None
+    generated_option: Optional[str] = None
 
     @property
     def sum_logprobs(self) -> float:
         return sum([tp.logprob for tp in self.token_probs])
 
     def __repr__(self) -> str:
-        return f"TextProbs(\nPROMPT: {self.prompt}\nGENERATED TEXT: {self.generated_text})\nTOKEN PROBS: {self.sum_logprobs:.2f}"
+        option = self.generated_option if self.generated_option is not None else ""
+        return f"TextProbs(\nPROMPT: {self.prompt}\nGENERATED TEXT: {self.generated_text})\nTOKEN PROBS: {self.sum_logprobs:.2f}\nGENERATED OPTION: {option}"
+
 
 class Pipeline(abc.ABC):
     """Abstract interface for a text generation pipeline"""

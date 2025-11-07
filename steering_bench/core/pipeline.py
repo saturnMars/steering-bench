@@ -100,7 +100,7 @@ class Pipeline(PipelineInterface):
         raise RuntimeError("Should never get here")
 
     @torch.no_grad()
-    def calculate_output_logprobs(self, completion: Completion) -> TextProbs:
+    def calculate_output_logprobs(self, completion: Completion, autoregressive_process: bool = False) -> TextProbs:
         
         """Calculate the logprobs for each token in the prompt + output"""
         base_prompt = self.build_generation_prompt(completion)
@@ -139,25 +139,27 @@ class Pipeline(PipelineInterface):
                 torch.gather(logprobs, 2, target_ids[:, :, None]).squeeze(-1)[0].cpu()
             )
 
+            # Collect token probs
             text_probs: list[TokenProb] = []
-
-            for _, (token, logprob) in enumerate(
-                zip(
-                    target_ids[0].cpu(),
-                    gen_logprobs,
-                )
-            ):
+            for _, (token, logprob) in enumerate(zip(target_ids[0].cpu(), gen_logprobs)):
                 if token not in self.tokenizer.all_special_ids:
-                    token_prob = TokenProb(
-                        token_id=token.item(),
-                        logprob=logprob.item(),
-                    )
-                    text_probs.append(token_prob)
-                    
-            # Autoregressive text generation
-            generated_text = self._autoregressive_generation(inputs.input_ids, outputs, max_new_tokens = 30)
+                    text_probs.append(TokenProb(token_id=token.item(), logprob=logprob.item()))
             
-            return TextProbs(prompt = full_prompt, generated_text = generated_text, token_probs=text_probs)
+            # Autoregressive text generation
+            if autoregressive_process:
+                
+                # Removed the guided response from "(B)" to "("
+                token_ids = inputs.input_ids[:, :-2]
+                outputs.logits = outputs.logits[:, :token_ids.shape[1], :]
+                full_prompt = full_prompt[:-2]
+        
+                with torch.no_grad():
+                    generated_text = self._autoregressive_generation(token_ids, outputs, max_new_tokens = 50)
+                    
+                return TextProbs(prompt = full_prompt, generated_text = generated_text, generated_option = generated_text[0], token_probs=text_probs)
+            else:
+                return TextProbs(prompt = full_prompt, token_probs=text_probs)
+
         raise RuntimeError("Should never get here")
     
     def _autoregressive_generation(self, input_ids: torch.Tensor, outputs:CausalLMOutputWithPast, max_new_tokens: int = 10) -> Any:
@@ -166,9 +168,11 @@ class Pipeline(PipelineInterface):
         # Initial forward pass
         generated_tokens = input_ids.clone()
         
+
+        
         # Feed inputs to model
         for _ in range(max_new_tokens):
-            
+   
             # Get logits for the last token
             next_token_logits = outputs.logits[:, -1, :]
 
@@ -182,9 +186,9 @@ class Pipeline(PipelineInterface):
             outputs = self.model(input_ids=generated_tokens, return_dict=True)
             
         # Decode generated text
-        generated_text = self.tokenizer.decode(generated_tokens.squeeze()[input_ids.shape[1]:], skip_special_tokens=True)
+        generated_text = self.tokenizer.decode(generated_tokens.squeeze()[input_ids.shape[1]:], skip_special_tokens=True) # 
             
         # Clean the text
-        generated_text = generated_text.split('\n')[0].split('.')[0].strip()
+        generated_text = generated_text.replace('\n', ' ').strip()
             
         return generated_text

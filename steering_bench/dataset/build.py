@@ -27,6 +27,11 @@ def _load_processed_dataset(dataset_path: pathlib.Path) -> Dataset:
     example_dict_list = jload(dataset_path)
     dataset: Dataset = []
     for example_dict in example_dict_list:
+
+        # Add neutral completion
+        example_dict["neutral"] = example_dict['positive'] | {'response': ""}
+        
+        # Build Example object
         dataset.append(
             Example(
                 positive=Completion(**example_dict["positive"]),
