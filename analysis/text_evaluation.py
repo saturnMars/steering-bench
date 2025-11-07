@@ -26,9 +26,9 @@ SYS_INST = "You are a helpful AI assistant, evaluating whether the model’s res
 
 if __name__ == '__main__':
     
-    # Load the evaluation model: (1) microsoft/Phi-4 (2) microsoft/Phi-4-mini-instruct
+    # Load the evaluation model: (1) microsoft/Phi-4 (2) microsoft/Phi-4-mini-instruct (3) openai/gpt-oss-20b
     device_id = 1
-    pipe = pipeline(task = "text-generation", model = "microsoft/Phi-4-mini-instruct", dtype="auto", device_map = {'': device_id} if device_id > 0 else 'auto') 
+    pipe = pipeline(task = "text-generation", model = "openai/gpt-oss-20b", dtype="auto", device_map = {'': device_id} if device_id > 0 else 'auto') 
     
     # Load the generated texts for all datasets
     metrics_model = "Llama_2_7b_chat_hf"

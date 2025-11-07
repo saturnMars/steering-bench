@@ -160,11 +160,11 @@ if __name__ == "__main__":
     
     # Load the model and tokenizer
     model_name = "meta-llama/Llama-2-7b-chat-hf"
-    llm = load_model_with_quantization(model_name, load_in_8bit=False, device = 1) # device = 'cuda:1'
+    llm = load_model_with_quantization(model_name, load_in_8bit=False, device = -1) # device = 'cuda:1'
     
     # Define datasets to run experiments on
-    datasets = ['anti-immigration', 'anti-LGBTQ-rights', 'extraversion', 'risk-seeking', 'interest-in-music']
+    datasets = ['anti-immigration', 'extraversion', 'risk-seeking', 'interest-in-music'] # 'anti-LGBTQ-rights',
     
     # Run steering experiments for each dataset
-    for dataset_name in datasets[2:]:
+    for dataset_name in datasets:
         steering_on_dataset(dataset_name, llm)

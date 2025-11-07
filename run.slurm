@@ -20,3 +20,4 @@ source .venv/bin/activate
 
 # Run script
 python3 experiments/steering_generalization/run_steering_experiment.py
+#python3 analysis/text_evaluation.py
