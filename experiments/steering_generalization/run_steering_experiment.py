@@ -35,8 +35,8 @@ def steering_on_dataset(dataset_name: str, llm:Tuple[AutoModelForCausalLM, AutoT
     
     print(f"\n\n=== Running steering experiment on dataset: {dataset_name} ===\n")
     
-    train_spec = DatasetSpec(name=dataset_name, split="0%:70%", seed=0) 
-    test_spec = DatasetSpec(name=dataset_name, split="99%:100%", seed=0)
+    train_spec = DatasetSpec(name=dataset_name, split="0%:70%", seed=101) 
+    test_spec = DatasetSpec(name=dataset_name, split="70%:100%", seed=101)
     train_dataset = build_dataset(train_spec)
     test_dataset = build_dataset(test_spec)
     
