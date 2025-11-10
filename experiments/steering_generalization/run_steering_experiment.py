@@ -1,6 +1,6 @@
 """Script to perform out-of-distribution steering"""
 
-from os import path, makedirs
+from os import path, makedirs, listdir
 from typing import Tuple
 import pandas as pd
 import torch
@@ -99,7 +99,13 @@ def steering_on_dataset(dataset_name: str, llm:Tuple[AutoModelForCausalLM, AutoT
             # Create directory for saving propensities
             eval_folder = path.join(save_dir, 'evaluations')
             makedirs(eval_folder, exist_ok=True)
-
+            
+            # Check if evaluation already exists
+            version_file = f"{train_persona_spec}SV_on_{test_persona_spec}.parquet"
+            if any(f.endswith(version_file) for f in listdir(eval_folder)):
+                print("Skipping evaluation for", version_file)
+                continue
+            
             # Create the steering hook, which applies the steering vector to the model
             steering_hook = SteeringHook(
                 steering_vector,
@@ -160,7 +166,7 @@ if __name__ == "__main__":
     
     # Load the model and tokenizer
     model_name = "meta-llama/Llama-2-7b-chat-hf"
-    llm = load_model_with_quantization(model_name, load_in_8bit=False, device = -1) # device = 'cuda:1'
+    llm = load_model_with_quantization(model_name, load_in_8bit=False, device = 1)
     
     # Define datasets to run experiments on
     datasets = ['anti-immigration', 'extraversion', 'risk-seeking', 'interest-in-music'] # 'anti-LGBTQ-rights',

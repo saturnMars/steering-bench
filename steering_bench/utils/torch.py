@@ -16,7 +16,7 @@ def load_model_with_quantization(
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
     
     # Set device map
-    device_map = "auto" if not device or device < 0 else {'':device}
+    device_map = "auto" if not device or device == -1 else {'':device}
     
     # Load the model with quantization if specified
     if load_in_4bit or load_in_8bit:
