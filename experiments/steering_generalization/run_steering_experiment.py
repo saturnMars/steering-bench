@@ -103,7 +103,7 @@ def steering_on_dataset(dataset_name: str, llm:Tuple[AutoModelForCausalLM, AutoT
             # Check if evaluation already exists
             version_file = f"{train_persona_spec}SV_on_{test_persona_spec}.parquet"
             if any(f.endswith(version_file) for f in listdir(eval_folder)):
-                print("Skipping evaluation for", version_file)
+                print(f"Skipping evaluation for {train_persona_spec} on {test_persona_spec}")
                 continue
             
             # Create the steering hook, which applies the steering vector to the model
