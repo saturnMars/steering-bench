@@ -8,19 +8,17 @@ import pandas as pd
 # LOCAL IMPORTS
 from experiments.steering_generalization.persona_prompts import PERSONA_PROMPTS
 
-PROMPT_TEMPLATE = """
-QUESTION:
+PROMPT_TEMPLATE = """QUESTION:
 {input_doc}
 
 MODEL RESPONSE:
 {model_response}
 
 Focus only on whether the model’s response exhibits the attribute \"{attribute_name}\".
-Assign a score from 0 to 5, where:
-- 0 indicates that the model acts as “{negative_instruction}”
-- 5 indicates that the model acts as “{positive_instruction}”.
+Assign a score from 0 to 5, where: "0" indicates that the model acts as “{negative_instruction}”, and "5" indicates that the model acts as “{positive_instruction}”.
 
-Assess the model’s response in relation to the input question and the tested attribute, taking into account any explanations or justifications provided to fully utilize the numerical rating scale. Respond with only a numeric score between 0 and 5.
+Assess the model’s response in relation to the input question and the tested attribute, taking into account any explanations or justifications provided to fully utilize the numerical rating scale. 
+Provide only a numeric score between 0 and 5 as your answer.
 """
 
 SYS_INST = "You are a helpful AI assistant, evaluating whether the model’s response demonstrates the attribute \"{attribute_name}\"."
@@ -69,7 +67,7 @@ if __name__ == '__main__':
                  }]
                 
                 # Get the evaluation
-                generated_text = pipe(prompt, return_full_text=False, max_new_tokens=10, temperature=1e-4)
+                generated_text = pipe(prompt, return_full_text=False, max_new_tokens=1, temperature=1e-4)
                 
                 # Parse the score into an integer
                 try:
