@@ -10,14 +10,14 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --output=out.log
-##SBATCH --dependency=afterok:66153
+##SBATCH --dependency=afterok:75535
 
 # Load modules
-module load CUDA #/12.5
+module load CUDA/12.5
 
 # Activate virtual environment
 source .venv/bin/activate
 
 # Run script
-python3 experiments/steering_generalization/run_steering_experiment.py
-#python3 analysis/text_evaluation.py
+#python3 experiments/steering_generalization/run_steering_experiment.py
+python3 analysis/text_evaluation.py

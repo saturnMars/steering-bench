@@ -166,7 +166,7 @@ if __name__ == "__main__":
     
     # Load the model and tokenizer
     model_name = "meta-llama/Llama-2-7b-chat-hf"
-    llm = load_model_with_quantization(model_name, load_in_8bit=False, device = 1)
+    llm = load_model_with_quantization(model_name, load_in_8bit=False, device = -1)
     
     # Define datasets to run experiments on
     datasets = ['anti-immigration', 'extraversion', 'risk-seeking', 'interest-in-music'] # 'anti-LGBTQ-rights',
