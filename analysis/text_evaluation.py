@@ -74,6 +74,7 @@ if __name__ == '__main__':
                     score = int(generated_text[0]['generated_text'].strip())
                 except ValueError:
                     score = None
+                    print(f"[WARNING] Could not parse score from model output: '{generated_text[0]['generated_text']}'")
                 evaluations.append(score)
                 
             # Add the evaluations to the dataframe
